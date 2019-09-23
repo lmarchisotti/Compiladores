@@ -12,19 +12,24 @@ struct Estrutura_TOKEN{
     bool error;
 }Arraytokens[100] = {0};
 
+struct Conj_Reservadas{
+    char token[25];
+}ArrayReservadas[100];
+
+
 char buffer[TAM_BUFFER];
 int buffersize=0;
-int TOKlen=0, TOKcount=0;
-int PosInLine=0, LCount=1;
+int TKlen=0, TKcount=0;
+int PosInLine=0, LCount=0;
 int tamFILE=0, sentinel=0;
 char atual;
 
 int setype(char atual);
-char newToken(FILE *read, int type, int TOKcount, int LCount ,int PosInLine);
+char newToken(FILE *read, int type, int FTKcount, int LineCount ,int LinePos);
  
 int main(int argc, char **argv){                                // Main - Somente um switch para as modularizacoes
 
-FILE *read;                                         // Ponteiro que irá ler o arquivo.
+    FILE *read;                                                 // Ponteiro que irá ler o arquivo.
     read = fopen ("test.c","r");                                // Ponteiro "read" abre o arquivo de entrada e fará a leitura dos caracteres do arquivo
     if (!read){                                                 // Caso o ponteiro "read" não ler nada, aparecerá a mensagem de erro.
         printf (" Não é possível abrir o arquivo! \n");
@@ -34,197 +39,216 @@ FILE *read;                                         // Ponteiro que irá ler o a
     while(!feof(read)){
         setbuf(stdin,NULL);
         fgets(buffer, TAM_BUFFER, read);
+        buffer[strlen(buffer)-1] = '\0';
         buffersize = strlen(buffer);
+        LCount++;
         PosInLine=0;
         atual = buffer[PosInLine];
+        // printf("Tam linha [%d] ---> %s\n",buffersize,buffer);
+        // printf("Ant Pen %c --- Pen %c --- Ult %c \n",buffer[buffersize-2],buffer[buffersize-1],buffer[buffersize]);
 
         for( PosInLine = 0; PosInLine<=buffersize ; PosInLine++){
             atual = buffer[PosInLine];
-            while(atual == ' ' || atual == '\t' || atual == '\n' ) {
-                if( atual == '\n' ){            
+            while(atual == ' ' || atual == '\t' || atual == '\n' || atual == '\0' ) {
+                if( atual == '\n' || atual == '\0' ){            
                     setbuf(stdin,NULL);
                     fgets(buffer, TAM_BUFFER, read);
+                    buffer[strlen(buffer)-1] = '\0';
                     buffersize = strlen(buffer);
-                    PosInLine = 0;
                     LCount++;
+                    PosInLine = 0;
                 }else if( atual == ' ' || atual == '\t' ){
                     PosInLine++;
                 }
                 atual = buffer[PosInLine];
             }
+            // printf("Atual %c---%d,%d\n",atual, LCount, PosInLine);
+            Arraytokens[TKcount].Type = setype(atual);
+            Arraytokens[TKcount].LineNumber = LCount;
+            Arraytokens[TKcount].PosInLine = PosInLine;
 
-            Arraytokens[TOKcount].Type = setype(atual);
-            Arraytokens[TOKcount].LineNumber = LCount;
-            Arraytokens[TOKcount].PosInLine = PosInLine;
+            newToken(read, Arraytokens[TKcount].Type, TKcount, LCount, PosInLine);
 
-            newToken(read, Arraytokens[TOKcount].Type, TOKcount, LCount, PosInLine);
-            //printf("%c %d:%d\n", atual, LCount, PosInLine);
-            // TOKcount++;
-            //printf("Token [%d] | %s ---> Type [%d] - Linha [%d na pos %d]\n",TOKcount , Arraytokens[TOKcount].token, Arraytokens[TOKcount].Type,Arraytokens[TOKcount].LineNumber,Arraytokens[TOKcount].PosInLine);
-            for ( int i=0 ; i<=TOKcount ; i++ ){
-                printf("Token [%d] | %s ---> Type [%d] - Pos [%d:%d]\n",TOKcount , Arraytokens[TOKcount].token, Arraytokens[TOKcount].Type,Arraytokens[TOKcount].LineNumber,Arraytokens[TOKcount].PosInLine);
-            }
-        
         }
     }
 }
  
 int setype(char c){         // Identifica o Type de caracter lido
-    
-    printf("%c %d:%d\n", atual, LCount, PosInLine);
-    if ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '$' ){   // Identificador
+    int s=0;
+    s = buffer[PosInLine+1];
+    if ( (c == '/' && s == '/') || (c == '/' && s == '*')){          // Comentario
+        return 0;
+    } else if ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '$' ){   // Identificador
         return 1;
     } else if ( c >= '0' && c <= '9'){      // Numeral
         return 2;
-    } else if ( c == ' ' || c == '\t' || c == '\n' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '=' || c == ';' || c == ','){        // Separador
+    } else if ( c == ' ' || c == '\t' || c == '\n' || c == '\0' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}' || c == '=' || c == ';' || c == ','){        // Separador
         return 3;
     } else if ( c == '+' || c == '-' || c == '*' || c == '/'){      // Operador
         return 4;
     } else if ( c == '#' ){     // Especial
         return 5;
-    }else if (c == '"'){    // Literal
+    } else if (c == '"'){    // Literal
         return 6;
-    }else if ( c == '#' ){  // Diretiva
+    } else if ( c == '@' || c == '~' || c == '^' ){  // Erro
         return 7;
-    }else if ( c == '@' || c == '~' || c == '^' ){  // Erro
+    } else 
         return 8;
-    }else{
-        return 0;
-    }
 }
  
-char newToken(FILE *read, int type, int TOKcount, int LCount ,int toklen){      // Função para coletar palavras ou tokens
+char newToken(FILE *read, int type, int FTKcount, int LineCount ,int LinePos){      // Função para coletar palavras ou tokens
+    int FTKlen=0;
+    int sentinel=0;
     
-    switch (Arraytokens[TOKcount].Type){
-        case 0:             // Erro
-            printf("ERRO ---> Case 0\n");
+
+    switch (type){
+        case 0:             // Comentarios
+            FTKlen=0;
+            sentinel = buffer[LinePos+1];
+            Arraytokens[FTKcount].Type = type;
+            if( atual == '/' && sentinel == '/' ){
+                do{
+                LinePos++;
+                PosInLine = LinePos - 1;
+                atual = buffer[LinePos];
+                sentinel = buffer[LinePos+1];
+                }while( atual == '\0' || sentinel == '\n' );
+            }
+            if( atual == '/' && sentinel == '*' ){
+                do{
+                    if( atual == '\n' || atual == '\0' ){            
+                        setbuf(stdin,NULL);
+                        fgets(buffer, TAM_BUFFER, read);
+                        buffer[strlen(buffer)-1] = '\0';
+                        buffersize = strlen(buffer);
+                        LineCount++;
+                        LinePos = 0;
+                    }
+                    atual = buffer[LinePos];
+                    LinePos++;
+                    PosInLine = LinePos - 1;
+                    sentinel = buffer[LinePos+1];
+                }while( atual == '*' && sentinel == '/');
+            }
             break;
         case 1:             // Identificador
-            printf("IN [1]\n");
-            TOKcount++;
-            TOKlen=0;
-            Arraytokens[TOKcount].LineNumber=LCount;
-            Arraytokens[TOKcount].PosInLine=PosInLine;
-            Arraytokens[TOKcount].error=0;
+            FTKlen=0;
+            FTKcount++;
+            TKcount = FTKcount;
+            Arraytokens[FTKcount].Type = type;
+            Arraytokens[FTKcount].LineNumber = LineCount;
+            Arraytokens[FTKcount].PosInLine = LinePos;
+            Arraytokens[FTKcount].error = 0;
             do{
-                Arraytokens[TOKcount].token[TOKlen] = atual;
-                PosInLine++;
-                TOKlen++;
-                atual = buffer[PosInLine];
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                LinePos++;
+                PosInLine = LinePos-1;
+                FTKlen++;
+                TKlen = FTKlen;
+                atual = buffer[LinePos];
             }while((atual >= 'a' && atual <= 'z') || (atual >= 'A' && atual <= 'Z') || (atual >= '0' && atual <= '9')|| atual == '_' || atual == '$');
-            printf("Token [%d] | %s ---> Type %d --- [LCount %d na pos %d]\n", TOKcount, Arraytokens[TOKcount].token, Arraytokens[TOKcount].Type, Arraytokens[TOKcount].LineNumber, Arraytokens[TOKcount].PosInLine);
+            printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             break;
         case 2:             // Numeral
-            printf("IN [2]\n");
-            Arraytokens[TOKcount].LineNumber=LCount;
-            Arraytokens[TOKcount].PosInLine=PosInLine;
-            Arraytokens[TOKcount].error=0;
+            FTKlen=0;
+            FTKcount++;
+            TKcount = FTKcount;
+            Arraytokens[FTKcount].Type = type;
+            Arraytokens[FTKcount].LineNumber=LineCount;
+            Arraytokens[FTKcount].PosInLine=LinePos;
+            Arraytokens[FTKcount].error=0;
             do {
-                Arraytokens[TOKcount].token[TOKlen] = atual;
-                PosInLine++;
-                TOKlen++;
-                atual = buffer[PosInLine];
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                LinePos++;
+                PosInLine = LinePos-1;
+                FTKlen++;
+                TKlen = FTKlen;
+                atual = buffer[LinePos];
             } while( atual >= '0' && atual <= '9');
-            TOKcount++;
+            printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             break;
         case 3:             // Separadores
             do {
-                printf("IN [3]\n");
-                printf("Atual --> [%c]\n",atual);
-                TOKlen=0;
-                atual = buffer[PosInLine];
-                Arraytokens[TOKcount].token[TOKlen] = atual;
-                Arraytokens[TOKcount].LineNumber = LCount;
-                Arraytokens[TOKcount].PosInLine = PosInLine;
-                Arraytokens[TOKcount].error=0;
-                PosInLine++;
-                TOKcount++;
-                printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", TOKcount, Arraytokens[TOKcount].token, Arraytokens[TOKcount].Type, Arraytokens[TOKcount].LineNumber, Arraytokens[TOKcount].PosInLine);
+                FTKlen=0;
+                FTKcount++;
+                TKcount = FTKcount;
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                Arraytokens[FTKcount].Type = type;
+                Arraytokens[FTKcount].LineNumber = LineCount;
+                Arraytokens[FTKcount].PosInLine = LinePos;
+                Arraytokens[FTKcount].error=0;
+                FTKlen++;
+                TKlen = FTKlen;
+                LinePos++;
+                PosInLine = LinePos-1;
+                atual = buffer[LinePos];
+                printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             } while( atual == '(' || atual == ')' || atual == '[' || atual == ']' || atual == '{' || atual == '}' || atual == '=' || atual == ';' || atual == ',' );
             break;
         case 4:             // Operadores
-            printf("IN [4]\n");
             do {
-                Arraytokens[TOKcount].token[toklen] = atual;
-                toklen++;
-                PosInLine++;
-                TOKcount++;
-                atual = buffer[PosInLine];
+                FTKlen=0;
+                FTKcount++;
+                TKcount = FTKcount;
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                Arraytokens[FTKcount].Type = type;
+                Arraytokens[FTKcount].LineNumber = LineCount;
+                Arraytokens[FTKcount].PosInLine = LinePos;
+                Arraytokens[FTKcount].error=0;
+                FTKlen++;
+                TKlen = FTKlen;
+                LinePos++;
+                PosInLine = LinePos - 1;
+                atual = buffer[LinePos];
+                printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             } while( atual == '+' || atual == '-' || atual == '*' || atual == '/' );
-            TOKcount++;
             break;
-        case 5:             // Especial
-            printf("IN [5]\n");
-            TOKlen=0;
-            if( atual == '#' ){
-                do{
-                Arraytokens[TOKcount].token[toklen] = atual;
-                toklen++;
-                PosInLine++;        
-                atual = buffer[PosInLine];
-                }while((atual >= 'a' && atual <= 'z') || (atual >= 'A' && atual <= 'Z') || (atual >= '0' && atual <= '9')|| atual == '_' || atual == '$' );
-                TOKcount++; 
+        case 5:             // Diretiva
+            FTKlen=0;
+            FTKcount++; 
+            TKcount = FTKcount;
+            Arraytokens[FTKcount].Type = type;
+            sentinel = buffer[LinePos+1];
+            if ( atual == '#' ){
+                if ( sentinel == '<' ){
+                    // do{
+                    Arraytokens[FTKcount].token[FTKlen] = atual;
+                    Arraytokens[FTKcount].LineNumber = LineCount;
+                    Arraytokens[FTKcount].PosInLine = LinePos;
+                    FTKlen++;
+                    TKlen = FTKlen;
+                    LinePos++;
+                    PosInLine = LinePos - 1;
+                    atual = buffer[LinePos];
+                    }while(atual == '#' );
+                    // }while((atual >= 'a' && atual <= 'z') || (atual >= 'A' && atual <= 'Z') || (atual >= '0' && atual <= '9')|| atual == '_' || atual == '$' || atual == '<' || atual =='>' );
+                // }
             }
+            printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             break;
         case 6:             // Literal
-            printf("IN - Case [6]\n");
+            printf("Atual --- %c\n",atual);
             do {
-                Arraytokens[TOKcount].token[toklen] = atual;
-                toklen++;
-
-                if( atual == '\n' ){
-                    setbuf(stdin,NULL);
-                    fgets(buffer, TAM_BUFFER, read);
-                    buffersize = strlen(buffer);
-                    PosInLine = 0;
-                    LCount++;
-                }else if(PosInLine < buffersize){
-                    PosInLine++;
-                }
-                atual = buffer[PosInLine];
-
-            } while( atual == '"' );
+                LinePos++;
+                PosInLine = LinePos -1;
+            } while( atual  == '"');
+            printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             break;
-        case 7:             // Diretiva
-            printf("IN - Case [7]\n");
+        case 7:             // Erro
             do {
-                Arraytokens[TOKcount].token[toklen] = atual;
-                toklen++;
-
-                if( atual == '\n' ){
-                    setbuf(stdin,NULL);
-                    fgets(buffer, TAM_BUFFER, read);
-                    buffersize = strlen(buffer);
-                    PosInLine = 0;
-                    LCount++;
-                }else if(PosInLine < buffersize){
-                    PosInLine++;
-                }
-                atual = buffer[PosInLine];
-
-            } while( atual == '#' );
-            break;
+                printf("Token [%c] nao permitido\n",atual);
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                Arraytokens[FTKcount].Type = type;
+                Arraytokens[FTKcount].LineNumber = LineCount;
+                Arraytokens[FTKcount].PosInLine = LinePos;
+                Arraytokens[FTKcount].error=1;                
+                LinePos++;
+                PosInLine = LinePos -1;
+                atual = buffer[LinePos];
+            } while( atual == '@' || atual == '~' || atual == '^' || atual == 128 || atual == 135 );
+            break; 
         case 8:             // Erro
-            printf("IN - Case [8]\n");
-            do {
-                Arraytokens[TOKcount].token[toklen] = atual;
-                toklen++;
-
-                if( atual == '\n' ){
-                    setbuf(stdin,NULL);
-                    fgets(buffer, TAM_BUFFER, read);
-                    buffersize = strlen(buffer);
-                    PosInLine = 0;
-                    LCount++;
-                }else if(PosInLine < buffersize){
-                    PosInLine++;
-                }
-                atual = buffer[PosInLine];
-
-            } while( atual == '@' || atual == '~' || atual == '^' );
-            TOKcount++;
-            break;  
-    
+            // printf("Caracter desconhecido --- ERRO\n");
+            break; 
     }
-    return atual;
 }
