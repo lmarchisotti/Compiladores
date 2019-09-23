@@ -21,7 +21,7 @@ char buffer[TAM_BUFFER];
 int buffersize=0;
 int TKlen=0, TKcount=0;
 int PosInLine=0, LCount=0;
-int tamFILE=0, sentinel=0;
+int lineSize=0, sentinel=0;
 char atual;
 
 int setype(char atual);
@@ -55,20 +55,22 @@ int main(int argc, char **argv){                                // Main - Soment
                     fgets(buffer, TAM_BUFFER, read);
                     buffer[strlen(buffer)-1] = '\0';
                     buffersize = strlen(buffer);
+                    // lineSize = buffersize;
                     LCount++;
                     PosInLine = 0;
                 }else if( atual == ' ' || atual == '\t' ){
                     PosInLine++;
                 }
                 atual = buffer[PosInLine];
+            printf("Atual %c---%d,%d\n",atual, LCount, PosInLine);
+            // getchar();
             }
-            // printf("Atual %c---%d,%d\n",atual, LCount, PosInLine);
+            // printf("Tam da linha %d\n", lineSize);
             Arraytokens[TKcount].Type = setype(atual);
             Arraytokens[TKcount].LineNumber = LCount;
             Arraytokens[TKcount].PosInLine = PosInLine;
 
             newToken(read, Arraytokens[TKcount].Type, TKcount, LCount, PosInLine);
-
         }
     }
 }
@@ -210,29 +212,36 @@ char newToken(FILE *read, int type, int FTKcount, int LineCount ,int LinePos){  
             Arraytokens[FTKcount].Type = type;
             sentinel = buffer[LinePos+1];
             if ( atual == '#' ){
-                if ( sentinel == '<' ){
-                    // do{
-                    Arraytokens[FTKcount].token[FTKlen] = atual;
-                    Arraytokens[FTKcount].LineNumber = LineCount;
-                    Arraytokens[FTKcount].PosInLine = LinePos;
-                    FTKlen++;
-                    TKlen = FTKlen;
-                    LinePos++;
-                    PosInLine = LinePos - 1;
-                    atual = buffer[LinePos];
-                    }while(atual == '#' );
-                    // }while((atual >= 'a' && atual <= 'z') || (atual >= 'A' && atual <= 'Z') || (atual >= '0' && atual <= '9')|| atual == '_' || atual == '$' || atual == '<' || atual =='>' );
-                // }
+                do{
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                Arraytokens[FTKcount].LineNumber = LineCount;
+                Arraytokens[FTKcount].PosInLine = LinePos;
+                FTKlen++;
+                TKlen = FTKlen;
+                LinePos++;
+                PosInLine = LinePos - 1;
+                atual = buffer[LinePos];
+                }while(atual == '#' );
             }
             printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
             break;
         case 6:             // Literal
-            printf("Atual --- %c\n",atual);
             do {
+                FTKlen=0;
+                FTKcount++;
+                TKcount = FTKcount;
+                Arraytokens[FTKcount].token[FTKlen] = atual;
+                Arraytokens[FTKcount].Type = type;
+                Arraytokens[FTKcount].LineNumber = LineCount;
+                Arraytokens[FTKcount].PosInLine = LinePos;
+                Arraytokens[FTKcount].error=0;
+                FTKlen++;
+                TKlen = FTKlen;
                 LinePos++;
-                PosInLine = LinePos -1;
-            } while( atual  == '"');
-            printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
+                PosInLine = LinePos-1;
+                atual = buffer[LinePos];
+                printf("Token [%d] | %s ---> Type %d --- [Linha %d na pos %d]\n", FTKcount, Arraytokens[FTKcount].token, Arraytokens[FTKcount].Type, Arraytokens[FTKcount].LineNumber, Arraytokens[FTKcount].PosInLine);
+            } while( atual == '"' );
             break;
         case 7:             // Erro
             do {
