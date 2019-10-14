@@ -1,0 +1,29 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "lexico.h"
+
+void main ( argc, **argv [] ) {
+    int a = 2;
+    char ab = b+a;
+    float c = 4;
+    double d = 5;
+    int k = a + b;
+    int @ = 6;
+    char _ = 7;
+    double [ = 8;
+    int { = 9;
+    char # = ç;
+    float "AMOR";
+    // Comentario de linha
+    int a = (ab*4)/k;
+    /* Comentario de bloco
+ int = 1+1345;  
+  char ab = 'amor';
+   float c = 3.14;
+    */ double kill = headshot;
+    float M = a +-*8/9;
+}
+{
+
+
+
