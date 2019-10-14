@@ -18,12 +18,7 @@ int main(int argc, char **argv){    // Main - Leitura de arquivos, ignora coment
         ArrayReservadas[Qreserved].token[strlen(ArrayReservadas[Qreserved].token)-1] = '\0';
         Qreserved++;
     }
-
-    // for (int i=0 ; i<Qreserved ; i++ ){
-    //     TKlen = strlen(ArrayReservadas[i].token);
-    //     printf("Palavra %s tamanho %d\n",ArrayReservadas[i].token, TKlen);
-    // }
-
+    
  // --------------------------------------- Leitura de Arquivo ---------------------------------------
 
     FILE *read;                                                 // Criação do ponteiro para leitura.
@@ -35,10 +30,10 @@ int main(int argc, char **argv){    // Main - Leitura de arquivos, ignora coment
 
  // -------------------------------------- Varredura do Arquivo --------------------------------------
 
-    while(!feof(read)){                                         // Enquanto nao encontrar o fim do arquivo... faça
-        fgets(buffer, TAM_BUFFER, read);                        // Capta a proxima linha do arquivo e coloca em uma big string
-        buffersize = strlen(buffer);                            // Mensura o tamanho da string captada
-        blockcomment = 0;                                       // Marcador de comentario em bloco inicializado com falso
+    blockcomment = 0;                       // Inicializa a flag comentario de bloco com falso
+    while(!feof(read)){                     // Enquanto nao encontrar o fim do arquivo... faça
+        fgets(buffer, TAM_BUFFER, read);    // Capta a proxima linha do arquivo e coloca em uma big string
+        buffersize = strlen(buffer);        // Mensura o tamanho da string captada
 
         for( PosInLine = 0; PosInLine <= buffersize  ; PosInLine++ ){   // Percorre a linha coletada do arquivo
             
@@ -51,24 +46,20 @@ int main(int argc, char **argv){    // Main - Leitura de arquivos, ignora coment
                 break;
             }else if( sentinelA == '/' && sentinelB == '*' ){
                 blockcomment = 1;
-                printf("**** ENTER comment block ***** \n");
             }else if ( sentinelA == '*' && sentinelB == '/' ){
                 blockcomment = 0;
                 PosInLine = PosInLine + 1;
-                printf("**** EXIT comment block ***** \n");
             }else if( atual == ' ' || atual == '\t' ){
                 continue;
             }
            
-            if (blockcomment == 1)                              // Ponto de verificação de ainda estar em comentario
-            break;
-
  // ---------------------------------------- Coleta de Tokens ----------------------------------------
-
-            Arraytokens[TKcount].Type = setype(atual, PosInLine);          // Classifica 
-            Arraytokens[TKcount].LineNumber = LCount;
-            Arraytokens[TKcount].PosInLine = PosInLine;
-            newToken(read, Arraytokens[TKcount].Type, TKcount, LCount, PosInLine);  // Chama a funcao de coleta de tokens
+            if (blockcomment != 1){
+                Arraytokens[TKcount].Type = setype(atual, PosInLine);          // Classifica 
+                Arraytokens[TKcount].LineNumber = LCount;
+                Arraytokens[TKcount].PosInLine = PosInLine;
+                newToken(read, Arraytokens[TKcount].Type, TKcount, LCount, PosInLine);  // Chama a funcao de coleta de tokens
+            }
 
         }
     }
