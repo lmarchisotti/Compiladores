@@ -35,10 +35,10 @@ int main(int argc, char **argv){    // Main - Leitura de arquivos, ignora coment
 
  // -------------------------------------- Varredura do Arquivo --------------------------------------
 
-    blockcomment = 0;                                       // Marcador de comentario em bloco inicializado com falso
     while(!feof(read)){                                         // Enquanto nao encontrar o fim do arquivo... faça
         fgets(buffer, TAM_BUFFER, read);                        // Capta a proxima linha do arquivo e coloca em uma big string
         buffersize = strlen(buffer);                            // Mensura o tamanho da string captada
+        blockcomment = 0;                                       // Marcador de comentario em bloco inicializado com falso
 
         for( PosInLine = 0; PosInLine <= buffersize  ; PosInLine++ ){   // Percorre a linha coletada do arquivo
             
@@ -60,13 +60,15 @@ int main(int argc, char **argv){    // Main - Leitura de arquivos, ignora coment
                 continue;
             }
            
+            if (blockcomment == 1)                              // Ponto de verificação de ainda estar em comentario
+            break;
+
  // ---------------------------------------- Coleta de Tokens ----------------------------------------
-            if( blockcomment != 1 ){
-                Arraytokens[TKcount].Type = setype(atual, PosInLine);          // Classifica 
-                Arraytokens[TKcount].LineNumber = LCount;
-                Arraytokens[TKcount].PosInLine = PosInLine;
-                newToken(read, Arraytokens[TKcount].Type, TKcount, LCount, PosInLine);  // Chama a funcao de coleta de tokens
-            }
+
+            Arraytokens[TKcount].Type = setype(atual, PosInLine);          // Classifica 
+            Arraytokens[TKcount].LineNumber = LCount;
+            Arraytokens[TKcount].PosInLine = PosInLine;
+            newToken(read, Arraytokens[TKcount].Type, TKcount, LCount, PosInLine);  // Chama a funcao de coleta de tokens
 
         }
     }
